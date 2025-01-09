@@ -1,12 +1,14 @@
 use crate::ray::*;
 use crate::point3d::*;
 use std::rc::Rc;
+use crate::material::*;
 
 pub struct HitRecord {
     pub p: Point3D,
     pub normal: Point3D,
     pub t: f64,
     pub front_face: bool,
+    pub material: Material,
 }
 
 pub trait Hittable {
@@ -18,8 +20,8 @@ pub struct HittableList {
 }
 
 impl HitRecord {
-    pub fn new(p: Point3D, normal: Point3D, t: f64, front_face: bool) -> HitRecord {
-        HitRecord{ p, normal, t, front_face }
+    pub fn new(p: Point3D, normal: Point3D, t: f64, front_face: bool, material: Material) -> HitRecord {
+        HitRecord{ p, normal, t, front_face, material }
     }
 }
 

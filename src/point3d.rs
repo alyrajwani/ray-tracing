@@ -33,6 +33,12 @@ impl Point3D {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
+    pub fn near_zero(&self) -> bool {
+        // Return true if the vector is close to zero in all dimensions.
+        let s = 1e-8;
+        self.x() < s && self.y() < s && self.z() < s
+    }
+
     pub fn random() -> Point3D {
         Point3D{ x: random_f64(), y: random_f64(), z: random_f64() }
     }
@@ -67,6 +73,10 @@ impl Point3D {
         } else {
             -on_unit_sphere
         }
+    }
+
+    pub fn reflect(&self, normal: &Point3D) -> Point3D {
+        *self - (*normal * self.dot(normal) * 2.0) 
     }
 
     pub fn dot(&self, other: &Point3D) -> f64 {

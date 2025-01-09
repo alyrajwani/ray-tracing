@@ -5,6 +5,7 @@ use crate::point3d::*;
 use std::fs::File;
 use std::io::{self, Write};
 use crate::random::*;
+use crate::material::*;
 
 pub struct Camera {
     center: Point3D,
@@ -88,8 +89,11 @@ impl Camera {
         if max_depth == 0 {
             Point3D::new(0.0, 0.0, 0.0)
         } else if let Some(rec) = world.hit(r, 0.001, f64::MAX) { 
-            let direction = rec.normal + Point3D::random_unit_vector();
-            Camera::ray_color(&Ray::new(rec.p, direction), max_depth - 1, world) * 0.5
+            if let Some((scattered, accentuation)) = Scatterable::scatter(&rec.material, r, &rec) {
+                return accentuation * Camera::ray_color(&scattered, max_depth - 1, world);
+            } else {
+                return Point3D::new(0.0, 0.0, 0.0)
+            }
         } else { 
             let unit_direction = r.direction().unit_vector();
             let a: f64 = 0.5 * (unit_direction.y() + 1.0);

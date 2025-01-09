@@ -1,10 +1,12 @@
 use crate::point3d::*;
 use crate::ray::*;
 use crate::hittable::*;
+use crate::material::*;
 
 pub struct Sphere {
     center: Point3D,
     radius: f64,
+    material: Material,
 }
 
 impl Hittable for Sphere {
@@ -30,6 +32,7 @@ impl Hittable for Sphere {
                         if front_face { normal } else { -normal },
                         *root,
                         front_face,
+                        self.material,
                     ));
                 }
             }
@@ -39,8 +42,8 @@ impl Hittable for Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Point3D, radius: f64) -> Sphere {
+    pub fn new(center: Point3D, radius: f64, material: Material) -> Sphere {
         let r = if radius < 0.0 { 0.0 } else { radius };
-        Sphere{ center, radius: r }
+        Sphere{ center, radius: r, material }
     }
 }
