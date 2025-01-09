@@ -88,7 +88,7 @@ impl Camera {
         if max_depth == 0 {
             Point3D::new(0.0, 0.0, 0.0)
         } else if let Some(rec) = world.hit(r, 0.001, f64::MAX) { 
-            let direction = Point3D::random_on_hemisphere(&rec.normal);
+            let direction = rec.normal + Point3D::random_unit_vector();
             Camera::ray_color(&Ray::new(rec.p, direction), max_depth - 1, world) * 0.5
         } else { 
             let unit_direction = r.direction().unit_vector();
