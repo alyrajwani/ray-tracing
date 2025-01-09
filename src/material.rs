@@ -46,18 +46,25 @@ impl Lambertian {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Metal {
-    pub albedo: Point3D
+    pub albedo: Point3D,
+    pub fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(albedo: Point3D) -> Metal {
-        Metal{ albedo }
+    pub fn new(albedo: Point3D, fuzz: f64) -> Metal {
+        let f = if fuzz < 1.0 { fuzz } else { 1.0 };
+        Metal{ albedo, fuzz: f }
     }
 
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)> {
         let reflected = Point3D::reflect(&r_in.direction(), &rec.normal);
-        let scattered = Ray::new(rec.p, reflected); 
+        let reflected_fuzz = Point3D::unit_vector(&reflected) + Point3D::random_unit_vector() * self.fuzz;
+        let scattered = Ray::new(rec.p, reflected_fuzz); 
         let accentuation = self.albedo;
-        Some((scattered, accentuation))
+        if scattered.direction().dot(&rec.normal) > 0.0 {
+            Some((scattered, accentuation))
+        } else { 
+            None
+        }
     }
 }

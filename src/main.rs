@@ -20,14 +20,13 @@ fn main() -> io::Result<()> {
     
     let material_ground = Material::Lambertian(Lambertian{ albedo: Point3D::new(0.8, 0.8, 0.0) });
     let material_center = Material::Lambertian(Lambertian{ albedo: Point3D::new(0.1, 0.2, 0.5) });
-    let material_left = Material::Metal(Metal{ albedo: Point3D::new(0.8, 0.8, 0.8) });
-    let material_right = Material::Metal(Metal{ albedo: Point3D::new(0.8, 0.6, 0.2) });
+    let material_left = Material::Metal(Metal{ albedo: Point3D::new(0.8, 0.8, 0.8), fuzz: 0.3 });
+    let material_right = Material::Metal(Metal{ albedo: Point3D::new(0.8, 0.6, 0.2), fuzz: 1.0 });
 
     world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0, material_ground)));
     world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, 0.0, -1.2), 0.5, material_center)));
     world.list.push(Rc::new(Sphere::new(Point3D::new(-1.0, 0.0, -1.0), 0.5, material_left)));
     world.list.push(Rc::new(Sphere::new(Point3D::new(1.0, 0.0, -1.0), 0.5, material_right)));
-
 
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width: f64 = 400.0;
