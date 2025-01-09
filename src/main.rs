@@ -4,6 +4,7 @@ mod point3d;
 mod ray;
 mod sphere;
 mod camera;
+mod random;
 
 use std::io;
 use std::rc::Rc;
@@ -19,9 +20,12 @@ fn main() -> io::Result<()> {
 
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width: f64 = 400.0;
-    let camera = Camera::new(aspect_ratio, image_width);
+    let samples_per_pixel: f64 = 10.0;
+    let max_depth: usize = 50;
+    let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth);
 
     let _ = camera.render(&world);
 
     Ok(())
 }
+

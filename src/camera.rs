@@ -4,6 +4,7 @@ use crate::ray::*;
 use crate::point3d::*;
 use std::fs::File;
 use std::io::{self, Write};
+use crate::random::*;
 
 pub struct Camera {
     center: Point3D,
@@ -13,10 +14,12 @@ pub struct Camera {
     image_height: f64,
     image_width: f64,
     aspect_ratio: f64,
+    pixel_samples_scale: f64,
+    max_depth: usize,
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: f64) -> Camera {
+    pub fn new(aspect_ratio: f64, image_width: f64, samples_per_pixel: f64, max_depth: usize) -> Camera {
         let image_height = if image_width / aspect_ratio < 1.0 {
             1.0 
         } else {
@@ -41,6 +44,8 @@ impl Camera {
             - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
+        let pixel_samples_scale = 1.0 / samples_per_pixel;
+
         Camera {
             center,
             pixel00_loc,
@@ -48,7 +53,9 @@ impl Camera {
             pixel_delta_v,
             image_height,
             image_width,
-            aspect_ratio
+            aspect_ratio,
+            pixel_samples_scale,
+            max_depth,
         }
     }
 
@@ -58,30 +65,51 @@ impl Camera {
         let path: String = format!("{}/{}.ppm", output_dir, file_name);
         let mut file = File::create(path)?;
 
-
         writeln!(file, "P3\n{} {}\n255", self.image_width, self.image_height)?;
 
+        let samples_per_pixel = 10;
         for j in 0..self.image_height as usize {
             for i in 0..self.image_width as usize {
-                let pixel_center = self.pixel00_loc + (self.pixel_delta_u * i as f64) + (self.pixel_delta_v * j as f64);
-                let ray_direction = pixel_center - self.center;
-                let r = Ray::new(self.center, ray_direction);
+                let mut pixel_color = Point3D::new(0.0, 0.0, 0.0);
+                for _ in 0..samples_per_pixel {
+                    let r = self.get_ray(i as f64, j as f64);
+                    pixel_color = pixel_color + Camera::ray_color(&r, self.max_depth, world);
+                }
 
-                let pixel_color = self.ray_color(&r, world);
-                write_color(&file, pixel_color)?;
+                write_color(&file, pixel_color * self.pixel_samples_scale)?;
             }
         }
 
         Ok(())
     }
 
-    fn ray_color(&self, r: &Ray, world: &dyn Hittable) -> Point3D { 
-        if let Some(rec) = world.hit(r, 0.0, f64::MAX) { 
-            return (rec.normal + Point3D::new(0.0, 0.0, 0.0)) * 0.5;
+    fn ray_color(r: &Ray, max_depth: usize, world: &dyn Hittable) -> Point3D { 
+        // If we've exceeded the ray bounce limit, no more light is gathered.
+        if max_depth == 0 {
+            Point3D::new(0.0, 0.0, 0.0)
+        } else if let Some(rec) = world.hit(r, 0.0, f64::MAX) { 
+            let direction = Point3D::random_on_hemisphere(&rec.normal);
+            Camera::ray_color(&Ray::new(rec.p, direction), max_depth - 1, world) * 0.5
         } else { 
             let unit_direction = r.direction().unit_vector();
             let a: f64 = 0.5 * (unit_direction.y() + 1.0);
             Point3D::new(1.0, 1.0, 1.0) * (1.0 - a) + Point3D::new(0.5, 0.7, 1.0) * a 
         } 
+    }
+
+    fn get_ray(&self, i: f64, j: f64) -> Ray {
+        // Construct a camera ray originating from the origin and directed at randomly sampled
+        // point around the pixel location i, j.
+        let offset = self.sample_square();
+        let pixel_sample = self.pixel00_loc  
+            + (self.pixel_delta_u * (i + offset.x()))
+            + (self.pixel_delta_v * (j + offset.y()));
+        let ray_origin = self.center;
+        let ray_direction = pixel_sample - ray_origin;
+        Ray::new(ray_origin, ray_direction)
+    }
+
+    fn sample_square(&self) -> Point3D {
+        Point3D::new(random_f64() - 0.5, random_f64() - 0.5, 0.0)
     }
 }
