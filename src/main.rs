@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
 
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width: f64 = 400.0;
-    let samples_per_pixel: f64 = 10.0;
+    let samples_per_pixel: f64 = 100.0;
     let max_depth: usize = 50;
     let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth);
 

@@ -61,13 +61,13 @@ impl Camera {
 
     pub fn render(&self, world: &dyn Hittable) -> io::Result<()> {
         let output_dir: &String = &"output".to_string();
-        let file_name: &String = &"chapter1".to_string();
+        let file_name: &String = &"output".to_string();
         let path: String = format!("{}/{}.ppm", output_dir, file_name);
         let mut file = File::create(path)?;
 
         writeln!(file, "P3\n{} {}\n255", self.image_width, self.image_height)?;
 
-        let samples_per_pixel = 10;
+        let samples_per_pixel = (1.0 / self.pixel_samples_scale) as usize;
         for j in 0..self.image_height as usize {
             for i in 0..self.image_width as usize {
                 let mut pixel_color = Point3D::new(0.0, 0.0, 0.0);
@@ -87,7 +87,7 @@ impl Camera {
         // If we've exceeded the ray bounce limit, no more light is gathered.
         if max_depth == 0 {
             Point3D::new(0.0, 0.0, 0.0)
-        } else if let Some(rec) = world.hit(r, 0.0, f64::MAX) { 
+        } else if let Some(rec) = world.hit(r, 0.001, f64::MAX) { 
             let direction = Point3D::random_on_hemisphere(&rec.normal);
             Camera::ray_color(&Ray::new(rec.p, direction), max_depth - 1, world) * 0.5
         } else { 
