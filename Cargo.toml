@@ -1,0 +1,7 @@
+[package]
+name = "ray-tracing"
+version = "0.1.0"
+authors = ["Aly Rajwani <aly_rajwani@brown.edu>"]
+edition = "2021"
+
+[dependencies]
