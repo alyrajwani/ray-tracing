@@ -7,18 +7,24 @@ use std::fs::File;
 use crate::point3d::*;
 use crate::ray::*;
 
-fn hit_sphere(center: Point3D, radius: f64, r: Ray) -> bool {
+fn hit_sphere(center: Point3D, radius: f64, r: Ray) -> f64 {
     let oc = center - r.origin();
     let a = r.direction().dot(&r.direction());
     let b = r.direction().dot(&oc) * -2.0;
     let c = oc.dot(&oc) - radius * radius;
     let discriminant = b * b - 4.0 * a * c;
-    discriminant >= 0.0
+    if discriminant < 0.0 {
+        return -1.0;
+    } else {
+        return (-b - f64::sqrt(discriminant)) / (2.0 * a);
+    }
 }
 
 fn ray_color(r: Ray) -> Point3D {
-    if hit_sphere(Point3D::new(0.0, 0.0, -1.0), 0.5, r) {
-        return Point3D::new(1.0, 0.0, 0.0);
+    let t = hit_sphere(Point3D::new(0.0, 0.0, -1.0), 0.5, r); 
+    if t > 0.0 {
+        let N = (r.at(t) - Point3D::new(0.0, 0.0, -1.0)).unit_vector();
+        return Point3D::new(N.x() + 1.0, N.y() + 1.0, N.z() + 1.0) * 0.5;
     }
     let unit_direction = r.direction().unit_vector();
     let a: f64 = 0.5 * (unit_direction.y() + 1.0);
