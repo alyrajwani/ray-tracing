@@ -1,5 +1,6 @@
 use crate::ray::*;
 use crate::point3d::*;
+use std::rc::Rc;
 
 pub struct HitRecord {
     pub p: Point3D,
@@ -13,7 +14,7 @@ pub trait Hittable {
 }
 
 pub struct HittableList {
-    list: Vec<Box<dyn Hittable>>,
+    pub list: Vec<Rc<dyn Hittable>>,
 }
 
 impl HitRecord {
@@ -23,7 +24,7 @@ impl HitRecord {
 }
 
 impl HittableList {
-    pub fn new(list: Vec<Box<dyn Hittable>>) -> HittableList { 
+    pub fn new(list: Vec<Rc<dyn Hittable>>) -> HittableList { 
         HittableList { list } 
     }
 }
