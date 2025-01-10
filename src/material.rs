@@ -6,6 +6,7 @@ use crate::hittable::*;
 pub enum Material {
     Lambertian(Lambertian),
     Metal(Metal),
+    Dielectric(Dielectric),
 }
 
 pub trait Scatterable {
@@ -22,6 +23,7 @@ impl Scatterable for Material {
         match self {
             Material::Lambertian(l) => l.scatter(r_in, rec),
             Material::Metal(m) => m.scatter(r_in, rec),
+            Material::Dielectric(d) => d.scatter(r_in, rec),
         }
     }
 }
@@ -67,4 +69,28 @@ impl Metal {
             None
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Dielectric {
+    // Refractive index in vacuum or air, or the ratio of the material's refractive index over
+    // the refractive index of the enclosing media
+    pub refraction_index: f64,
+}
+
+impl Dielectric {
+    pub fn new(refraction_index: f64) -> Dielectric {
+        Dielectric{ refraction_index }
+    }
+
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)> {
+        let attenuation = Point3D::new(1.0, 1.0, 1.0);
+        let ri = if rec.front_face { 1.0 / self.refraction_index } else { self.refraction_index };
+
+        let unit_direction = r_in.direction().unit_vector();
+        let refracted = unit_direction.refract(&rec.normal, ri);
+
+        let scattered = Ray::new(rec.p, refracted);
+        Some((scattered, attenuation))
+    }   
 }

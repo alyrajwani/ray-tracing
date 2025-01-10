@@ -79,6 +79,13 @@ impl Point3D {
         *self - (*normal * self.dot(normal) * 2.0) 
     }
 
+    pub fn refract(&self, normal: &Point3D, etai_over_etat: f64) -> Point3D {
+        let cos_theta = if -self.dot(normal) < 1.0 { -self.dot(normal) } else { 1.0 };
+        let r_out_perp = (*self + *normal * cos_theta) * etai_over_etat;
+        let r_out_parallel = *normal * -f64::sqrt(1.0 - r_out_perp.length_squared());
+        r_out_perp + r_out_parallel
+    }
+
     pub fn dot(&self, other: &Point3D) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
