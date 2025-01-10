@@ -20,12 +20,14 @@ fn main() -> io::Result<()> {
     
     let material_ground = Material::Lambertian(Lambertian{ albedo: Point3D::new(0.8, 0.8, 0.0) });
     let material_center = Material::Lambertian(Lambertian{ albedo: Point3D::new(0.1, 0.2, 0.5) });
-    let material_left = Material::Dielectric(Dielectric{ refraction_index: 1.00 / 1.33 });
+    let material_left = Material::Dielectric(Dielectric{ refraction_index: 1.50 });
+    let material_bubble = Material::Dielectric(Dielectric{ refraction_index: 1.00 / 1.50 }); 
     let material_right = Material::Metal(Metal{ albedo: Point3D::new(0.8, 0.6, 0.2), fuzz: 1.0 });
 
     world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0, material_ground)));
     world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, 0.0, -1.2), 0.5, material_center)));
     world.list.push(Rc::new(Sphere::new(Point3D::new(-1.0, 0.0, -1.0), 0.5, material_left)));
+    world.list.push(Rc::new(Sphere::new(Point3D::new(-1.0, 0.0, -1.0), 0.4, material_bubble)));
     world.list.push(Rc::new(Sphere::new(Point3D::new(1.0, 0.0, -1.0), 0.5, material_right)));
 
     let aspect_ratio: f64 = 16.0 / 9.0;

@@ -1,6 +1,7 @@
 use crate::point3d::*;
 use crate::ray::*;
 use crate::hittable::*;
+use crate::random::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Material {
@@ -83,6 +84,12 @@ impl Dielectric {
         Dielectric{ refraction_index }
     }
 
+    fn reflectance(&self, cosine: f64, refraction_index: f64) -> f64 {
+        let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
+        let r0_sqr = r0 * r0;
+        r0_sqr + (1.0 - r0_sqr) * (1.0 - cosine).powi(5)
+    }
+
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)> {
         let attenuation = Point3D::new(1.0, 1.0, 1.0);
         let ri = if rec.front_face { 1.0 / self.refraction_index } else { self.refraction_index };
@@ -92,7 +99,7 @@ impl Dielectric {
         let sin_theta = f64::sqrt(1.0 - cos_theta * cos_theta);
 
         let cannot_refract = ri * sin_theta > 1.0;
-        let direction = if cannot_refract { 
+        let direction = if cannot_refract || self.reflectance(cos_theta, ri) > random_f64() { 
             unit_direction.reflect(&rec.normal)
         } else { 
             unit_direction.refract(&rec.normal, ri)
