@@ -88,9 +88,17 @@ impl Dielectric {
         let ri = if rec.front_face { 1.0 / self.refraction_index } else { self.refraction_index };
 
         let unit_direction = r_in.direction().unit_vector();
-        let refracted = unit_direction.refract(&rec.normal, ri);
+        let cos_theta = if -unit_direction.dot(&rec.normal) < 1.0 { -unit_direction.dot(&rec.normal) } else { 1.0 };
+        let sin_theta = f64::sqrt(1.0 - cos_theta * cos_theta);
 
-        let scattered = Ray::new(rec.p, refracted);
+        let cannot_refract = ri * sin_theta > 1.0;
+        let direction = if cannot_refract { 
+            unit_direction.reflect(&rec.normal)
+        } else { 
+            unit_direction.refract(&rec.normal, ri)
+        };
+
+        let scattered = Ray::new(rec.p, direction);
         Some((scattered, attenuation))
     }   
 }
