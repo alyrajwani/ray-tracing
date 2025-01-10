@@ -7,6 +7,8 @@ use std::io::{self, Write};
 use crate::random::*;
 use crate::material::*;
 
+pub const PI: f64 = 3.14159265358979323846264338327950288_f64;
+
 pub struct Camera {
     center: Point3D,
     pixel00_loc: Point3D,
@@ -17,31 +19,45 @@ pub struct Camera {
     aspect_ratio: f64,
     pixel_samples_scale: f64,
     max_depth: usize,
+    vfov: f64, // Vertical view angle (field of view)
+    lookfrom: Point3D, // Point camera is looking from
+    lookat: Point3D, // Point camera is looking at
+    vup: Point3D, // Camera-relative "up" direction
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: f64, samples_per_pixel: f64, max_depth: usize) -> Camera {
+    pub fn new(aspect_ratio: f64, image_width: f64, samples_per_pixel: f64, max_depth: usize, 
+        vfov: f64, lookfrom: Point3D, lookat: Point3D, vup: Point3D) -> Camera {
         let image_height = if image_width / aspect_ratio < 1.0 {
             1.0 
         } else {
             image_width / aspect_ratio
         };
-        let center = Point3D::new(0.0, 0.0, 0.0);
+        
+        let center = lookfrom;
+
         // Determine viewport dimensions.
-        let focal_length: f64 = 1.0;
-        let viewport_height: f64 = 2.0;
+        let focal_length: f64 = (lookfrom - lookat).length();
+        let theta = Camera::degrees_to_radians(vfov);
+        let h = (theta / 2.0).tan();
+        let viewport_height: f64 = 2.0 * h * focal_length;
         let viewport_width: f64 = viewport_height * (image_width / image_height);
 
+        // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+        let w = (lookfrom - lookat).unit_vector();
+        let u = vup.cross(&w).unit_vector();
+        let v = w.cross(&u);
+
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
-        let viewport_u = Point3D::new(viewport_width, 0.0, 0.0);
-        let viewport_v = Point3D::new(0.0, -viewport_height, 0.0);
+        let viewport_u = u * viewport_width;     // Vector across viewport horizontal edge
+        let viewport_v = -v * viewport_height;   // Vector down viewport vertical edge 
 
         // Calculate the horizontal and vertical delta vectors from pixel to pixel.
         let pixel_delta_u = viewport_u / image_width;
         let pixel_delta_v = viewport_v / image_height;
 
         // Calculate the location of the upper left pixel.
-        let viewport_upper_left = center - Point3D::new(0.0, 0.0, focal_length) 
+        let viewport_upper_left = center - (w * focal_length) 
             - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
@@ -57,6 +73,10 @@ impl Camera {
             aspect_ratio,
             pixel_samples_scale,
             max_depth,
+            vfov,
+            lookfrom,
+            lookat,
+            vup,
         }
     }
 
@@ -115,5 +135,9 @@ impl Camera {
 
     fn sample_square(&self) -> Point3D {
         Point3D::new(random_f64() - 0.5, random_f64() - 0.5, 0.0)
+    }
+    
+    pub fn degrees_to_radians(deg: f64) -> f64 {
+        deg * PI / 180.0
     }
 }

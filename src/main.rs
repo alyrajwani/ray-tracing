@@ -15,9 +15,11 @@ use crate::sphere::*;
 use crate::camera::*;
 use crate::material::*;
 
+pub const PI: f64 = 3.14159265358979323846264338327950288_f64;
+
 fn main() -> io::Result<()> {
     let mut world = HittableList::new(Vec::new());
-    
+
     let material_ground = Material::Lambertian(Lambertian{ albedo: Point3D::new(0.8, 0.8, 0.0) });
     let material_center = Material::Lambertian(Lambertian{ albedo: Point3D::new(0.1, 0.2, 0.5) });
     let material_left = Material::Dielectric(Dielectric{ refraction_index: 1.50 });
@@ -34,7 +36,11 @@ fn main() -> io::Result<()> {
     let image_width: f64 = 400.0;
     let samples_per_pixel: f64 = 100.0;
     let max_depth: usize = 50;
-    let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth);
+    let vfov: f64 = 20.0;
+    let lookfrom = Point3D::new(-2.0, 2.0, 1.0);
+    let lookat = Point3D::new(0.0, 0.0, -1.0);
+    let vup = Point3D::new(0.0, 1.0, 0.0);
+    let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth, vfov, lookfrom, lookat, vup);
 
     let _ = camera.render(&world);
 
