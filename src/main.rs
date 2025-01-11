@@ -7,8 +7,6 @@ mod camera;
 mod random;
 mod material;
 
-use std::io;
-use std::rc::Rc;
 use crate::point3d::*;
 use crate::hittable::*;
 use crate::sphere::*;
@@ -25,11 +23,11 @@ fn three_balls() -> HittableList {
     let material_bubble = Material::Dielectric(Dielectric{ refraction_index: 1.00 / 1.50 }); 
     let material_right = Material::Metal(Metal{ albedo: Point3D::new(0.8, 0.6, 0.2), fuzz: 1.0 });
 
-    world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0, material_ground)));
-    world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, 0.0, -1.2), 0.5, material_center)));
-    world.list.push(Rc::new(Sphere::new(Point3D::new(-1.0, 0.0, -1.0), 0.5, material_left)));
-    world.list.push(Rc::new(Sphere::new(Point3D::new(-1.0, 0.0, -1.0), 0.4, material_bubble)));
-    world.list.push(Rc::new(Sphere::new(Point3D::new(1.0, 0.0, -1.0), 0.5, material_right)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0, material_ground)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(0.0, 0.0, -1.2), 0.5, material_center)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(-1.0, 0.0, -1.0), 0.5, material_left)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(-1.0, 0.0, -1.0), 0.4, material_bubble)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(1.0, 0.0, -1.0), 0.5, material_right)));
 
     world
 }
@@ -38,7 +36,7 @@ fn random_scene() -> HittableList {
     let mut world = HittableList::new(Vec::new());
     
     let ground_material = Material::Lambertian(Lambertian { albedo: Point3D::new(0.5, 0.5, 0.5) } );
-    world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, -1000.0, 0.0), 1000.0, ground_material)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(0.0, -1000.0, 0.0), 1000.0, ground_material)));
 
     for a in -11..11 {
         for b in -11..11 {
@@ -64,21 +62,53 @@ fn random_scene() -> HittableList {
             };
 
             if let Some(material) = sphere_material { 
-                world.list.push(Rc::new(Sphere::new(center, 0.2, material)));
+                world.list.push(Box::new(Sphere::new(center, 0.2, material)));
             }
         }
     }
 
     let material_one = Material::Dielectric(Dielectric { refraction_index: 1.5 } );
-    world.list.push(Rc::new(Sphere::new(Point3D::new(0.0, 1.0, 0.0), 1.0, material_one)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(0.0, 1.0, 0.0), 1.0, material_one)));
 
     let material_two = Material::Lambertian(Lambertian { albedo: Point3D::new(0.4, 0.2, 0.1) } );
-    world.list.push(Rc::new(Sphere::new(Point3D::new(-4.0, 1.0, 0.0), 1.0, material_two)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(-4.0, 1.0, 0.0), 1.0, material_two)));
 
     let material_three = Material::Metal(Metal { albedo: Point3D::new(0.7, 0.6, 0.5), fuzz: 0.0 } );
-    world.list.push(Rc::new(Sphere::new(Point3D::new(4.0, 1.0, 0.0), 1.0, material_three)));
+    world.list.push(Box::new(Sphere::new(Point3D::new(4.0, 1.0, 0.0), 1.0, material_three)));
 
     world
+}
+
+fn movie_scene() -> HittableList {
+    let mut world = HittableList::new(Vec::new());
+    
+    let ground_material = Material::Lambertian(Lambertian { albedo: Point3D::new(0.5, 0.5, 0.5) } );
+    world.list.push(Box::new(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0, ground_material)));
+
+    let red_ball = Material::Lambertian(Lambertian { albedo: Point3D::new(1.0, 0.0, 0.0) } );
+    world.list.push(Box::new(Sphere::new(Point3D::new(0.0, 0.0, -1.2), 0.5, red_ball)));
+
+    world
+}
+
+fn movie_camera(focus_dist: f64, defocus_angle: f64) -> Camera {
+    let aspect_ratio: f64 = 16.0 / 9.0;
+    let image_width: f64 = 640.0;
+    let samples_per_pixel: f64 = 100.0;
+    let max_depth: usize = 20;
+   
+    let stats = CameraStats::new(aspect_ratio, image_width, samples_per_pixel, max_depth);
+
+    let vfov: f64 = 40.0;
+    let lookfrom = Point3D::new(-0.0, 0.0, 1.0);
+    let lookat = Point3D::new(0.0, 0.0, -1.0);
+    let vup = Point3D::new(0.0, 1.0, 0.0);
+    
+    let view = CameraView::new(stats, vfov, lookfrom, lookat, vup, focus_dist);
+
+    let focus = CameraFocus::new(view, defocus_angle);
+    
+    Camera::new(stats, view, focus)
 }
 
 fn camera_three_ball() -> Camera {
@@ -106,9 +136,9 @@ fn camera_three_ball() -> Camera {
 
 fn camera_random() -> Camera {
     let aspect_ratio: f64 = 16.0 / 9.0;
-    let image_width: f64 = 800.0;
-    let samples_per_pixel: f64 = 10.0;
-    let max_depth: usize = 20;
+    let image_width: f64 = 1200.0;
+    let samples_per_pixel: f64 = 100.0;
+    let max_depth: usize = 50;
 
     let stats = CameraStats::new(aspect_ratio, image_width, samples_per_pixel, max_depth);
 
@@ -127,12 +157,9 @@ fn camera_random() -> Camera {
     Camera::new(stats, view, focus)
 }
 
-fn main() -> io::Result<()> {
+fn main() {
     let world = random_scene(); 
     let camera = camera_random();
 
-    let _ = camera.render(&world);
-
-    Ok(())
+    let _ = camera.render(&world, "output/multithreading.ppm");
 }
-

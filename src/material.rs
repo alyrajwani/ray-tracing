@@ -11,7 +11,7 @@ pub enum Material {
 }
 
 pub trait Scatterable {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)>;
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> (Option<Ray>, Option<Point3D>);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -20,7 +20,7 @@ pub struct Lambertian {
 }
 
 impl Scatterable for Material {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> (Option<Ray>, Option<Point3D>) {
         match self {
             Material::Lambertian(l) => l.scatter(r_in, rec),
             Material::Metal(m) => m.scatter(r_in, rec),
@@ -34,7 +34,7 @@ impl Lambertian {
         Lambertian{ albedo }
     }
 
-    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)> {
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> (Option<Ray>, Option<Point3D>) {
         let mut scatter_direction = rec.normal + Point3D::random_unit_vector();
         // Catch degenerate scatter direction
         if Point3D::near_zero(&scatter_direction) {
@@ -43,7 +43,7 @@ impl Lambertian {
 
         let scattered = Ray::new(rec.p, scatter_direction);
         let accentuation = self.albedo;
-        Some((scattered, accentuation))
+        (Some(scattered), Some(accentuation))
     }
 }
 
@@ -59,15 +59,15 @@ impl Metal {
         Metal{ albedo, fuzz: f }
     }
 
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> (Option<Ray>, Option<Point3D>) {
         let reflected = Point3D::reflect(&r_in.direction(), &rec.normal);
         let reflected_fuzz = Point3D::unit_vector(&reflected) + Point3D::random_unit_vector() * self.fuzz;
         let scattered = Ray::new(rec.p, reflected_fuzz); 
         let accentuation = self.albedo;
         if scattered.direction().dot(&rec.normal) > 0.0 {
-            Some((scattered, accentuation))
+            (Some(scattered), Some(accentuation))
         } else { 
-            None
+            (None, None)
         }
     }
 }
@@ -90,7 +90,7 @@ impl Dielectric {
         r0_sqr + (1.0 - r0_sqr) * (1.0 - cosine).powi(5)
     }
 
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Point3D)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> (Option<Ray>, Option<Point3D>) { 
         let attenuation = Point3D::new(1.0, 1.0, 1.0);
         let ri = if rec.front_face { 1.0 / self.refraction_index } else { self.refraction_index };
 
@@ -106,6 +106,6 @@ impl Dielectric {
         };
 
         let scattered = Ray::new(rec.p, direction);
-        Some((scattered, attenuation))
+        (Some(scattered), Some(attenuation))
     }   
 }

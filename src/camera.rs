@@ -2,10 +2,11 @@ use crate::hittable::*;
 use crate::color::*;
 use crate::ray::*;
 use crate::point3d::*;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{self, Write};
 use crate::random::*;
 use crate::material::*;
+use rayon::prelude::*;
 
 pub struct Camera {
     stats: CameraStats,
@@ -15,23 +16,23 @@ pub struct Camera {
 
 #[derive(Clone, Copy)]
 pub struct CameraStats {
-    aspect_ratio: f64,
-    image_height: f64,
-    image_width: f64,
-    pixel_samples_scale: f64,
-    max_depth: usize,
+    aspect_ratio: f64, // Ratio of image width over height
+    image_height: f64, // Rendered image height in pixel count
+    image_width: f64, // Rendered image width in pixel count
+    pixel_samples_scale: f64, // Count of random samples for each pixel
+    max_depth: usize, // Maximum number of ray bounces into scene
 }
 
 #[derive(Clone, Copy)]
 pub struct CameraView {
-    center: Point3D,
-    pixel00_loc: Point3D,
-    pixel_delta_u: Point3D,
-    pixel_delta_v: Point3D,
-    vfov: f64,
-    lookfrom: Point3D,
-    lookat: Point3D,
-    vup: Point3D,
+    center: Point3D, // Camera center
+    pixel00_loc: Point3D, // Location of pixel 0, 0
+    pixel_delta_u: Point3D, // Offset to pixel to the right
+    pixel_delta_v: Point3D, // Offset to pixel below
+    vfov: f64, // Vertical view angle (field of view)
+    lookfrom: Point3D, // Point camera is looking from
+    lookat: Point3D, // Point camera is looking at
+    vup: Point3D, // Camera-relative "up" direction
     focus_dist: f64, // Distance from camera lookfrom point to plane of perfect focus
 }
 
@@ -50,8 +51,24 @@ impl CameraStats {
             image_width / aspect_ratio
         };
         let pixel_samples_scale = 1.0 / samples_per_pixel;
-    
+
         CameraStats { aspect_ratio, image_height, image_width, pixel_samples_scale, max_depth } 
+    }
+
+    pub fn max_depth(&self) -> usize {
+        self.max_depth
+    }
+
+    pub fn height(&self) -> f64 {
+        self.image_height
+    }
+
+    pub fn width(&self) -> f64 {
+        self.image_width
+    }
+
+    pub fn samples_per_pixel(&self) -> usize {
+        (1.0 / self.pixel_samples_scale) as usize
     }
 }
 
@@ -81,7 +98,7 @@ impl CameraView {
         // Calculate the location of the upper left pixel.
         let viewport_upper_left = center - (w * focus_dist) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
-        
+
         // Calculate the location of the upper left pixel.
         CameraView { center, pixel00_loc, pixel_delta_u, pixel_delta_v, vfov, lookfrom, lookat, vup, focus_dist }
     }
@@ -108,38 +125,53 @@ impl Camera {
         Camera { stats, view, focus }
     }
 
-    pub fn render(&self, world: &dyn Hittable) -> io::Result<()> {
-        let output_dir: &String = &"output".to_string();
-        let file_name: &String = &"final_render".to_string();
-        let path: String = format!("{}/{}.ppm", output_dir, file_name);
-        let mut file = File::create(path)?;
+    pub fn stats(&self) -> CameraStats {
+        self.stats
+    }
 
-        writeln!(file, "P3\n{} {}\n255", self.stats.image_width, self.stats.image_height)?;
+    pub fn view(&self) -> CameraView {
+        self.view
+    }
+
+    pub fn focus(&self) -> CameraFocus {
+        self.focus
+    }
+
+    pub fn render(&self, world: &dyn Hittable, file_name: &str) -> io::Result<()> {
+        let mut pic = format!("P3\n{} {}\n255\n", self.stats.image_width, self.stats.image_height);
 
         let samples_per_pixel = (1.0 / self.stats.pixel_samples_scale) as usize;
-        for j in 0..self.stats.image_height as usize {
-            for i in 0..self.stats.image_width as usize {
+        let pixels = (0..self.stats.height() as usize).into_par_iter().map(|h| {
+            (0..self.stats.width() as usize).into_par_iter().map(|w| {
                 let mut pixel_color = Point3D::new(0.0, 0.0, 0.0);
                 for _ in 0..samples_per_pixel {
-                    let r = self.get_ray(i as f64, j as f64);
+                    let r = self.get_ray(w as f64, h as f64);
                     pixel_color = pixel_color + self.ray_color(&r, self.stats.max_depth, world);
                 }
-
-                write_color(&file, pixel_color * self.stats.pixel_samples_scale)?;
-            }
-        }
+                pixel_color = pixel_color / samples_per_pixel as f64;
+                pixel_color = Point3D::new(pixel_color.x().sqrt(), pixel_color.y().sqrt(), pixel_color.z().sqrt());
+                let min: f64 = 0.000;
+                let max: f64 = 0.999;
+                let rbyte: usize = (256.0 * clamp(pixel_color.x(), min, max)) as usize;
+                let gbyte: usize = (256.0 * clamp(pixel_color.y(), min, max)) as usize;
+                let bbyte: usize = (256.0 * clamp(pixel_color.z(), min, max)) as usize;
+                format!("{} {} {}\n", rbyte, gbyte, bbyte)
+            }).collect::<Vec<String>>().join("")
+        }).collect::<Vec<String>>().join("");
+    
+        pic = format!("{}{}", &pic, pixels);
+        fs::write(file_name.to_string(), pic)?;
         Ok(())
     }
 
-    fn ray_color(&self, r: &Ray, max_depth: usize, world: &dyn Hittable) -> Point3D { 
+    pub fn ray_color(&self, r: &Ray, max_depth: usize, world: &dyn Hittable) -> Point3D { 
         // If we've exceeded the ray bounce limit, no more light is gathered.
         if max_depth == 0 {
             Point3D::new(0.0, 0.0, 0.0)
         } else if let Some(rec) = world.hit(r, 0.001, f64::MAX) { 
-            if let Some((scattered, accentuation)) = Scatterable::scatter(&rec.material, r, &rec) {
-                return accentuation * self.ray_color(&scattered, max_depth - 1, world);
-            } else {
-                return Point3D::new(0.0, 0.0, 0.0)
+            match Scatterable::scatter(&rec.material, r, &rec) {
+                (Some(scattered), Some(accentuation)) => accentuation * self.ray_color(&scattered, max_depth - 1, world),
+                _ => Point3D::new(0.0, 0.0, 0.0),
             }
         } else { 
             let unit_direction = r.direction().unit_vector();
@@ -148,7 +180,7 @@ impl Camera {
         } 
     }
 
-    fn get_ray(&self, i: f64, j: f64) -> Ray {
+    pub fn get_ray(&self, i: f64, j: f64) -> Ray {
         // Construct a camera ray originating from the defocus disk and directed at a randomly
         // sampled point around the pixel location i, j.
         let offset = self.sample_square();

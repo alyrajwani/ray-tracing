@@ -11,12 +11,12 @@ pub struct HitRecord {
     pub material: Material,
 }
 
-pub trait Hittable {
+pub trait Hittable: Sync {
     fn hit(&self, r: &Ray, ray_tmin: f64, ray_tmax: f64) -> Option<HitRecord>;
 }
 
 pub struct HittableList {
-    pub list: Vec<Rc<dyn Hittable>>,
+    pub list: Vec<Box<dyn Hittable>>,
 }
 
 impl HitRecord {
@@ -26,7 +26,7 @@ impl HitRecord {
 }
 
 impl HittableList {
-    pub fn new(list: Vec<Rc<dyn Hittable>>) -> HittableList { 
+    pub fn new(list: Vec<Box<dyn Hittable>>) -> HittableList { 
         HittableList { list } 
     }
 }
