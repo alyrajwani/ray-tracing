@@ -7,8 +7,6 @@ use std::io::{self, Write};
 use crate::random::*;
 use crate::material::*;
 
-pub const PI: f64 = 3.14159265358979323846264338327950288_f64;
-
 pub struct Camera {
     stats: CameraStats,
     view: CameraView,
@@ -173,6 +171,6 @@ impl Camera {
     }
 
     pub fn degrees_to_radians(deg: f64) -> f64 {
-        deg * PI / 180.0
+        deg * std::f64::consts::PI / 180.0
     }
 }

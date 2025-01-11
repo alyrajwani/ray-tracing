@@ -15,7 +15,6 @@ use crate::sphere::*;
 use crate::camera::*;
 use crate::material::*;
 use crate::random::*;
-pub const PI: f64 = 3.14159265358979323846264338327950288_f64;
 
 fn three_balls() -> HittableList {
     let mut world = HittableList::new(Vec::new());
