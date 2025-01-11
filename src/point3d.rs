@@ -43,7 +43,7 @@ impl Point3D {
         Point3D{ x: random_f64(), y: random_f64(), z: random_f64() }
     }
 
-    pub fn random_in_range(min: f64, max: f64) -> Point3D {
+    pub fn random_point_in_range(min: f64, max: f64) -> Point3D {
         Point3D{ 
             x: random_in_range(min, max),
             y: random_in_range(min, max),
@@ -56,9 +56,17 @@ impl Point3D {
         Point3D{ x: self.x / length, y: self.y / length, z: self.z / length } 
     }
 
+    pub fn random_in_unit_disk() -> Point3D {
+        Point3D::new(
+            random_in_range(-1.0, 1.0),
+            random_in_range(-1.0, 1.0),
+            0.0
+        )
+    }
+
     pub fn random_unit_vector() -> Point3D {
         loop {
-            let p = Point3D::random_in_range(-1.0, 1.0);
+            let p = Point3D::random_point_in_range(-1.0, 1.0);
             let lensq = p.length_squared();
             if 1e-160 < lensq && lensq <= 1.0 {
                 return p / f64::sqrt(lensq);
