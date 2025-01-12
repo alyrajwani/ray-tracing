@@ -5,4 +5,4 @@ Following 'Ray Tracing in One Weekend' by Peter Shirley, Trevor David Black, Ste
 ![Alt text](/output/multithreading.png?raw=true "Final Output")
 
 # Blur Effect
-![Alt text](/output/blue.mp4?raw=true "Blur Effect")
+![Alt text](/output/blur.mp4?raw=true "Blur Effect")
